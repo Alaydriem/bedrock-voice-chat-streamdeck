@@ -1,0 +1,77 @@
+{
+	"Name": "Bedrock Voice Chat",
+	"Version": "0.1.0.0",
+	"Author": "Alaydriem",
+	"Actions": [
+		{
+			"Name": "Mute",
+			"UUID": "com.alaydriem.bedrock-voice-chat.streamdeck.mute",
+			"Icon": "imgs/actions/mute/icon",
+			"Tooltip": "Toggle microphone mute in Bedrock Voice Chat",
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/mute/key",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"Name": "Deafen",
+			"UUID": "com.alaydriem.bedrock-voice-chat.streamdeck.deafen",
+			"Icon": "imgs/actions/deafen/icon",
+			"Tooltip": "Toggle deafen in Bedrock Voice Chat",
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/deafen/key",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"Name": "Record",
+			"UUID": "com.alaydriem.bedrock-voice-chat.streamdeck.record",
+			"Icon": "imgs/actions/record/icon",
+			"Tooltip": "Toggle recording in Bedrock Voice Chat",
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/record/key",
+					"ShowTitle": false
+				}
+			]
+		}
+	],
+	"Category": "Bedrock Voice Chat",
+	"CategoryIcon": "imgs/plugin/category-icon",
+	"CodePath": "bin/plugin.js",
+	"Description": "A stream deck plugin for managing Bedrock Voice Chat",
+	"Icon": "imgs/plugin/marketplace",
+	"PropertyInspectorPath": "ui/global-settings.html",
+	"SDKVersion": 3,
+	"Software": {
+		"MinimumVersion": "6.9"
+	},
+	"OS": [
+		{
+			"Platform": "mac",
+			"MinimumVersion": "12"
+		},
+		{
+			"Platform": "windows",
+			"MinimumVersion": "10"
+		}
+	],
+	"Nodejs": {
+		"Version": "20",
+		"Debug": "enabled"
+	},
+	"UUID": "com.alaydriem.bedrock-voice-chat.streamdeck"
+}
