@@ -106,12 +106,15 @@ class WsManager {
     streamDeck.logger.info(`Connecting to BVC at ${url}`);
 
     const ws = new WebSocket(url, { maxPayload: 64 * 1024 });
+    this.ws = ws;
 
     ws.on("error", (err) => {
+      if (this.ws !== ws) return; // stale socket
       streamDeck.logger.error(`WebSocket error: ${err.message}`);
     });
 
     ws.on("open", () => {
+      if (this.ws !== ws) return; // stale socket
       streamDeck.logger.info("Connected to BVC");
       this.setConnected(true);
       this.send({ action: "state" });
@@ -120,6 +123,7 @@ class WsManager {
     });
 
     ws.on("close", () => {
+      if (this.ws !== ws) return; // stale socket — new connection already active
       this.stopPing();
       this.stopStableTimer();
       this.ws = null;
@@ -134,11 +138,8 @@ class WsManager {
       }
     });
 
-    ws.on("pong", () => {
-      this.awaitingPong = false;
-    });
-
     ws.on("message", (raw) => {
+      if (this.ws !== ws) return; // stale socket
       try {
         const msg = JSON.parse(raw.toString());
         if (!msg || typeof msg !== "object") return;
@@ -157,8 +158,6 @@ class WsManager {
         streamDeck.logger.warn("Failed to parse WebSocket message");
       }
     });
-
-    this.ws = ws;
   }
 
   private disconnect(): void {
@@ -180,8 +179,9 @@ class WsManager {
   }
 
   private handleMessage(data: Record<string, unknown>): void {
-    // Pong response
+    // Pong response — resets the keepalive flag
     if (data.pong === true) {
+      this.awaitingPong = false;
       return;
     }
 
@@ -277,10 +277,8 @@ class WsManager {
         this.ws?.terminate();
         return;
       }
-      if (this.ws?.readyState === WebSocket.OPEN) {
-        this.awaitingPong = true;
-        this.ws.ping();
-      }
+      this.awaitingPong = true;
+      this.send({ action: "ping" });
     }, PING_INTERVAL_MS);
   }
 
