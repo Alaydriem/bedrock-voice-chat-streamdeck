@@ -1,17 +1,18 @@
 /**
- * Generate static PNG action icons from the Lucide base SVGs.
+ * Generate SVG action icons from the Lucide base SVGs.
  *
  * Per action we generate:
- *   icon.png / icon@2x.png           — action-list icon (white, uses the "on" SVG)
- *   key.png / key@2x.png             — manifest default = disconnected (gray)
- *   key-on.png / key-on@2x.png       — active/on state
- *   key-off.png / key-off@2x.png     — toggled off state
- *   key-disconnected.png / …@2x.png  — disconnected (gray) — same as key.png
+ *   icon.svg               — action-list icon (white, uses the "on" SVG)
+ *   key.svg                — manifest default = disconnected (gray)
+ *   key-on.svg             — active/on state
+ *   key-off.svg            — toggled off state
+ *   key-disconnected.svg   — disconnected (gray) — same as key.svg
+ *
+ * SVGs are resolution-independent so @2x variants are not needed.
  *
  * Usage:  node scripts/generate-icons.mjs
  */
 
-import sharp from "sharp";
 import { mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 
@@ -64,7 +65,8 @@ function extractInner(svgString) {
  * Icon is centered with padding inside the target square.
  */
 function buildSvg(innerElements, size, color) {
-  const ratio = size <= 40 ? 0.6 : 0.5;
+  // Action-list: 69% ratio; Key: 57.5% ratio (~15% larger than previous)
+  const ratio = size <= 40 ? 0.69 : 0.575;
   const glyphSize = Math.round(size * ratio);
   const offset = Math.round((size - glyphSize) / 2);
   const scale = glyphSize / 24;
@@ -78,48 +80,36 @@ function buildSvg(innerElements, size, color) {
 </svg>`;
 }
 
-async function renderPng(innerElements, size, color) {
-  const svg = buildSvg(innerElements, size, color);
-  return sharp(Buffer.from(svg)).png().toBuffer();
-}
-
-async function writePng(outDir, name, size, buf) {
+function writeSvg(outDir, name, size, svg) {
   const outPath = join(outDir, name);
-  writeFileSync(outPath, buf);
-  console.log(`  ${outPath} (${size}x${size}, ${buf.length} bytes)`);
+  writeFileSync(outPath, svg, "utf-8");
+  console.log(`  ${outPath} (${size}x${size})`);
 }
 
-async function main() {
+function main() {
   for (const action of actions) {
     const outDir = join(SD_PLUGIN, "imgs", "actions", action.name);
     mkdirSync(outDir, { recursive: true });
 
-    // --- Action-list icons (icon.png / icon@2x.png) — always white, "on" shape ---
+    // --- Action-list icon (icon.svg) — always white, "on" shape ---
     const iconInner = extractInner(readFileSync(join(baseDir, action.icon), "utf-8"));
-    for (const [size, suffix] of [[20, ""], [40, "@2x"]]) {
-      const buf = await renderPng(iconInner, size, WHITE);
-      await writePng(outDir, `icon${suffix}.png`, size, buf);
-    }
+    const iconSvg = buildSvg(iconInner, 20, WHITE);
+    writeSvg(outDir, "icon.svg", 20, iconSvg);
 
     // --- Key images for each state ---
     for (const state of action.states) {
       const inner = extractInner(readFileSync(join(baseDir, state.svg), "utf-8"));
-      for (const [size, suffix] of [[72, ""], [144, "@2x"]]) {
-        const buf = await renderPng(inner, size, state.color);
-        await writePng(outDir, `${state.prefix}${suffix}.png`, size, buf);
-      }
+      const svg = buildSvg(inner, 144, state.color);
+      writeSvg(outDir, `${state.prefix}.svg`, 144, svg);
     }
 
-    // --- key.png / key@2x.png = manifest default = disconnected state ---
-    // Copy the disconnected images as key.png / key@2x.png
+    // --- key.svg = manifest default = disconnected state ---
     const disconnected = action.states.find((s) => s.prefix === "key-disconnected");
     const discInner = extractInner(readFileSync(join(baseDir, disconnected.svg), "utf-8"));
-    for (const [size, suffix] of [[72, ""], [144, "@2x"]]) {
-      const buf = await renderPng(discInner, size, disconnected.color);
-      await writePng(outDir, `key${suffix}.png`, size, buf);
-    }
+    const keySvg = buildSvg(discInner, 144, disconnected.color);
+    writeSvg(outDir, "key.svg", 144, keySvg);
   }
   console.log("\nDone.");
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+main();
