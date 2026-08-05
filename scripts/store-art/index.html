@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>BVC store art</title>
+    <style>
+      /* No chrome, no margin, no scrollbars: the page IS the artboard, so a
+         window-sized headless screenshot is pixel-exact with nothing to crop. */
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background: transparent;
+      }
+      canvas {
+        display: block;
+      }
+      /* The alpha checkerboard, shown only for ?bg=transparent so it is obvious
+         which pixels are actually empty. Never captured: see `capture` below. */
+      body.is-alpha {
+        background-image:
+          linear-gradient(45deg, #201830 25%, transparent 25%, transparent 75%, #201830 75%),
+          linear-gradient(45deg, #201830 25%, transparent 25%, transparent 75%, #201830 75%);
+        background-size: 24px 24px;
+        background-position: 0 0, 12px 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="art"></canvas>
+
+    <script type="module">
+      /**
+       * BVC store art — the onboarding mark, at any size, as a still or dancing.
+       *
+       * The mark is ported from bvc-radial-login/client/src/radial:
+       *   core/mark/MarkData.ts      the 23 columns
+       *   core/mark/MarkRenderer.ts  dance(), extent(), draw()
+       *   core/color/Color.ts        mix + rgba
+       *   bindings/MarkBinding.ts    how onboarding presents it (spectrum, mortar, gain 1)
+       *
+       * Ported rather than imported: those modules are TypeScript behind a Vite alias,
+       * so importing them would make a store asset depend on the sibling checkout being
+       * present and building. The drawing maths below is copied verbatim, so the output
+       * is the same mark; only the harness around it is local.
+       *
+       * Rendering is a pure function of `t`, the same contract IntroSequence.renderAt(t)
+       * keeps. A given ?t= always produces the same frame, which is what makes a
+       * screenshot reproducible instead of a lucky grab.
+       *
+       *   ?w= ?h=   artboard size in px         (default 512 x 512)
+       *   ?t=       freeze at t seconds          (omit to animate live)
+       *   ?bg=      ground hex, or `transparent` (default #251844, INTRO_DEFAULTS)
+       *   ?fill=    mark width as a fraction of the shorter edge (default 0.8)
+       */
+
+      const q = new URLSearchParams(location.search);
+      const num = (k, fallback) => (q.has(k) ? Number(q.get(k)) : fallback);
+
+      const W = num("w", 512);
+      const H = num("h", 512);
+      const FILL = num("fill", 0.8);
+      const BG = q.get("bg") ?? "#251844";
+      const FROZEN = q.has("t") ? Number(q.get("t")) : null;
+
+      // ---- Ease (core/math/Ease.ts) ----
+      const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
+      const clamp = (v, lo, hi) => (v < lo ? lo : v > hi ? hi : v);
+      const lerp = (a, b, t) => a + (b - a) * t;
+
+      // ---- Color (core/color/Color.ts) ----
+      function channels(color) {
+        let hex = color.replace("#", "").trim();
+        if (hex.length === 3) hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+        const n = Number.parseInt(hex, 16);
+        if (hex.length !== 6 || Number.isNaN(n)) return [255, 255, 255];
+        return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+      }
+      const rgba = (color, alpha) => {
+        const [r, g, b] = channels(color);
+        return `rgba(${r},${g},${b},${alpha})`;
+      };
+      const byte = (v) => Math.round(clamp(v, 0, 255)).toString(16).padStart(2, "0");
+      function mix(from, to, k) {
+        const a = channels(from);
+        const b = channels(to);
+        return `#${byte(lerp(a[0], b[0], k))}${byte(lerp(a[1], b[1], k))}${byte(lerp(a[2], b[2], k))}`;
+      }
+
+      // ---- MarkData (core/mark/MarkData.ts) ----
+      // 137 blocks on a 23x13 grid: every column one contiguous vertical span, a
+      // waveform envelope running violet to red. The radial palette is defined against
+      // these values, which is why the keys and this mark are the same system.
+      const COLUMNS = [
+        [6, 6, "#8239d8"], [5, 6, "#8238d8"], [3, 7, "#8238d8"], [4, 8, "#6a50e9"],
+        [5, 10, "#466cf3"], [3, 11, "#3d93ed"], [1, 8, "#28bae1"], [2, 9, "#21d8d8"],
+        [4, 8, "#26ddcd"], [2, 7, "#34d8a0"], [0, 7, "#3bd869"], [2, 10, "#6fd846"],
+        [4, 11, "#aee236"], [6, 12, "#f8e433"], [5, 11, "#f8e434"], [3, 8, "#f9bf21"],
+        [1, 6, "#f99a23"], [0, 7, "#f9871d"], [3, 9, "#f67414"], [5, 10, "#f65021"],
+        [4, 8, "#f0422b"], [5, 6, "#f8352b"], [6, 6, "#f63125"],
+      ];
+      const COLS = COLUMNS.length;
+      const ROWS = 13;
+      const MID = 6;
+      const markWidth = (cell, gap) => COLS * (cell + gap) - gap;
+      const markHeight = (cell, gap) => ROWS * (cell + gap) - gap;
+
+      // ---- MarkRenderer (core/mark/MarkRenderer.ts) ----
+      /** Per-column amplitude. Two slow sines beating against each other. */
+      function dance(col, t, gain, reduce = false) {
+        if (reduce) return gain;
+        const a = 0.5 + 0.5 * Math.sin(t * 0.0027 + col * 0.44);
+        const b = 0.5 + 0.5 * Math.sin(t * 0.0012 + col * 0.17 + 1.1);
+        return gain * (0.42 + 0.58 * (a * 0.62 + b * 0.38));
+      }
+
+      /** The rows a column occupies at a given amplitude, as [top, bottom] inclusive. */
+      function extent(col, amplitude) {
+        const [top, bottom] = COLUMNS[col];
+        return [
+          Math.round(MID - (MID - top) * amplitude),
+          Math.round(MID + (bottom - MID) * amplitude),
+        ];
+      }
+
+      function drawMark(x, paint) {
+        const { ox, oy, cell, gap, t } = paint;
+        const gain = paint.gain ?? 1;
+        const floor = paint.floor ?? 0.05;
+        const reveal = paint.reveal ?? 1;
+        const tintMix = paint.tintMix ?? 1;
+        const idle = paint.idle ?? "#7a68a0";
+        const pitch = cell + gap;
+
+        const extents = [];
+        const lit = [];
+        for (let c = 0; c < COLS; c++) {
+          const raw = paint.still ? gain : dance(c, t, gain, paint.reduce);
+          extents.push(extent(c, Math.max(floor, raw)));
+          lit.push(clamp01(reveal * COLS - c));
+        }
+
+        // The violet mortar fills the gaps *inside* the silhouette only, so the blocks
+        // read as blocks without the negative space going black.
+        if (paint.mortar !== false) {
+          const mortarAlpha = paint.mortarAlpha ?? 1;
+          const mortarColor = paint.mortarColor ?? "#43306e";
+          for (let c = 0; c < COLS; c++) {
+            if (lit[c] <= 0) continue;
+            const [top, bottom] = extents[c];
+            x.fillStyle = rgba(mortarColor, mortarAlpha * lit[c]);
+            x.fillRect(
+              ox + c * pitch - gap / 2,
+              oy + top * pitch - gap / 2,
+              cell + gap,
+              (bottom - top + 1) * pitch,
+            );
+          }
+        }
+
+        for (let c = 0; c < COLS; c++) {
+          if (lit[c] <= 0) continue;
+          const [top, bottom] = extents[c];
+          const own = paint.tint ?? COLUMNS[c][2];
+          const color = tintMix >= 1 ? own : mix(idle, own, tintMix);
+          const inset = (1 - lit[c]) * cell * 0.34;
+          x.globalAlpha = lit[c];
+          x.fillStyle = color;
+          for (let r = top; r <= bottom; r++) {
+            x.fillRect(ox + c * pitch + inset, oy + r * pitch + inset, cell - inset * 2, cell - inset * 2);
+          }
+          x.globalAlpha = 1;
+        }
+      }
+
+      // ---- the artboard ----
+
+      const canvas = document.getElementById("art");
+      canvas.width = W;
+      canvas.height = H;
+      canvas.style.width = `${W}px`;
+      canvas.style.height = `${H}px`;
+      const x = canvas.getContext("2d");
+
+      const transparent = BG === "transparent";
+      document.body.classList.toggle("is-alpha", transparent);
+
+      /**
+       * Cell size derived from the artboard so one page serves a 256 icon and a 1024
+       * hero at the same proportions. Gap is 30% of the cell, the ratio MarkBinding
+       * defaults to; both are rounded to whole pixels so blocks stay on the pixel grid
+       * and never render a soft edge.
+       */
+      function geometry() {
+        const target = Math.min(W, H) * FILL;
+        const cell = Math.max(1, Math.round(target / COLS / 1.3));
+        const gap = Math.max(1, Math.round(cell * 0.3));
+        return { cell, gap };
+      }
+
+      function renderAt(seconds) {
+        const { cell, gap } = geometry();
+        x.clearRect(0, 0, W, H);
+        if (!transparent) {
+          x.fillStyle = BG;
+          x.fillRect(0, 0, W, H);
+        }
+        drawMark(x, {
+          ox: Math.round((W - markWidth(cell, gap)) / 2),
+          oy: Math.round((H - markHeight(cell, gap)) / 2),
+          cell,
+          gap,
+          t: seconds * 1000,
+          gain: 1,
+          mortar: true,
+          mortarColor: "#43306e",
+        });
+      }
+
+      if (FROZEN !== null) {
+        renderAt(FROZEN);
+        // Tells the capture script the frame is on screen and final.
+        document.title = `ready ${FROZEN}`;
+      } else {
+        const t0 = performance.now();
+        const frame = () => {
+          renderAt((performance.now() - t0) / 1000);
+          requestAnimationFrame(frame);
+        };
+        requestAnimationFrame(frame);
+      }
+    </script>
+  </body>
+</html>

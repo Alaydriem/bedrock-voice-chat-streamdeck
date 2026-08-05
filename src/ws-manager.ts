@@ -10,12 +10,28 @@ const RECONNECT_BASE_MS = 1000;
 const RECONNECT_MAX_MS = 30000;
 const PING_INTERVAL_MS = 15000;
 const STABLE_THRESHOLD_MS = 30000;
+const USER_AGENT_PRODUCT = "Stream Deck";
 
 /** Parse a port string, returning the default if empty/invalid. */
 function parsePort(value: string | number | undefined): number {
   if (value === undefined || value === "") return DEFAULT_PORT;
   const n = typeof value === "number" ? value : parseInt(value, 10);
   return Number.isFinite(n) && n > 0 && n <= 65535 ? n : DEFAULT_PORT;
+}
+
+/**
+ * Build the User-Agent sent on the WebSocket upgrade request so BVC can identify
+ * the connecting client, e.g. `Stream Deck/6.9.1 (com.alaydriem...; plugin 1.0.0.0)`.
+ * Registration info is only populated after `streamDeck.connect()`; fall back to the
+ * bare product token if it is unavailable.
+ */
+function buildUserAgent(): string {
+  try {
+    const { application, plugin } = streamDeck.info;
+    return `${USER_AGENT_PRODUCT}/${application.version} (${plugin.uuid}; plugin ${plugin.version})`;
+  } catch {
+    return USER_AGENT_PRODUCT;
+  }
 }
 
 class WsManager {
@@ -31,6 +47,7 @@ class WsManager {
   private intentionalClose = false;
   private listeners = new Set<StateListener>();
   private pendingErrorCallback: (() => void) | null = null;
+  private userAgent = USER_AGENT_PRODUCT;
 
   public state: BvcState = {
     connected: false,
@@ -40,6 +57,9 @@ class WsManager {
   };
 
   async initialize(): Promise<void> {
+    // Resolved here (not at construction) — registration info exists only post-connect.
+    this.userAgent = buildUserAgent();
+
     const globalSettings = await streamDeck.settings.getGlobalSettings<GlobalSettings>();
     this.applySettings(globalSettings);
 
@@ -105,7 +125,10 @@ class WsManager {
     const url = `ws://${this.host}:${this.port}/ws`;
     streamDeck.logger.info(`Connecting to BVC at ${url}`);
 
-    const ws = new WebSocket(url, { maxPayload: 64 * 1024 });
+    const ws = new WebSocket(url, {
+      maxPayload: 64 * 1024,
+      headers: { "User-Agent": this.userAgent },
+    });
     this.ws = ws;
 
     ws.on("error", (err) => {
