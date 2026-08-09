@@ -24,7 +24,7 @@ export class DeafenAction extends SingletonAction<ActionSettings> {
   override async onKeyDown(ev: KeyDownEvent<ActionSettings>): Promise<void> {
     const sent = wsManager.send(
       { action: "mute", device: "output" },
-      () => { ev.action.showAlert(); },
+      { onError: () => void ev.action.showAlert() },
     );
     if (!sent) {
       await ev.action.showAlert();

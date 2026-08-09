@@ -2,12 +2,17 @@
 <html>
 
 <head lang="en">
-    <title>Bedrock Voice Chat Settings</title>
+    <title>Bedrock Voice Chat — Connect</title>
     <meta charset="utf-8" />
     <script src="https://sdpi-components.dev/releases/v4/sdpi-components.js"></script>
 </head>
 
 <body>
+    <sdpi-item label="Target">
+        <sdpi-select setting="targetId" datasource="getTargets" showRefresh
+            loading="Loading Realms and proxies..."></sdpi-select>
+    </sdpi-item>
+
     <sdpi-item label="Host">
         <sdpi-textfield setting="host" global placeholder="127.0.0.1"></sdpi-textfield>
     </sdpi-item>
