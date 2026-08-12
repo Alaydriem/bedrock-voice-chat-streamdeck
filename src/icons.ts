@@ -15,6 +15,10 @@ export const icons = {
   recordOff:              "imgs/actions/record/key-off",
   recordDisconnected:     "imgs/actions/record/key-disconnected",
 
+  jukeboxOn:              "imgs/actions/jukebox/key-on",
+  jukeboxOff:             "imgs/actions/jukebox/key-off",
+  jukeboxDisconnected:    "imgs/actions/jukebox/key-disconnected",
+
   connectOn:              "imgs/actions/connect/key-on",
   connectOff:             "imgs/actions/connect/key-off",
   connectDisconnected:    "imgs/actions/connect/key-disconnected",

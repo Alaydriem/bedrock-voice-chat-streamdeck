@@ -18,6 +18,7 @@ export interface ActiveConnection {
 export type BvcCommand =
   | { action: "ping" }
   | { action: "mute"; device: "input" | "output" }
+  | { action: "jukebox" }
   | { action: "record" }
   | { action: "state" }
   | { action: "ptt"; down: boolean }
@@ -38,6 +39,7 @@ export interface BvcState {
   recording: boolean | null;
   voiceMode: VoiceMode | null;
   pttActive: boolean | null;
+  jukeboxMuted: boolean | null;
   connection: ActiveConnection | null;
   targets: readonly ConnectTarget[];
 }
@@ -49,6 +51,7 @@ export type BvcStateEvent =
   | { type: "recordingChanged"; recording: boolean | null }
   | { type: "voiceModeChanged"; voiceMode: VoiceMode | null }
   | { type: "pttActiveChanged"; active: boolean | null }
+  | { type: "jukeboxMuteChanged"; muted: boolean | null }
   | { type: "activeConnectionChanged"; connection: ActiveConnection | null }
   | { type: "targetsChanged"; targets: readonly ConnectTarget[] };
 
@@ -64,6 +67,21 @@ export interface ConnectActionSettings {
   targetId?: string;
   targetName?: string;
   targetKind?: ConnectTargetKind;
+  [key: string]: boolean | number | string | null | undefined;
+}
+
+/**
+ * Settings for the Stat action — one snapshot path.
+ *
+ * One stat to a key, so the number is legible across a room. Somebody who wants four watches
+ * four keys, which also lets them arrange the four the way they want them.
+ *
+ * Only the path is stored. Unlike the Connect key, no label is cached beside it: labels come
+ * from the plugin's own catalog, or are derived from the path, so a key reads correctly with
+ * the client shut.
+ */
+export interface StatActionSettings {
+  stat?: string;
   [key: string]: boolean | number | string | null | undefined;
 }
 

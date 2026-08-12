@@ -7,6 +7,8 @@ export interface StateFrameData {
   recording: boolean;
   voiceMode: VoiceMode | null;
   pttActive: boolean;
+  /** Whether jukebox music is silenced. A client predating the field reads as playing. */
+  jukeboxMuted: boolean;
   connection: ActiveConnection | null;
 }
 
@@ -15,6 +17,7 @@ export type BvcFrame =
   | { kind: "pong" }
   | { kind: "targets"; targets: ConnectTarget[] }
   | { kind: "mute"; device: "input" | "output"; muted: boolean }
+  | { kind: "jukebox"; muted: boolean }
   | { kind: "state"; state: StateFrameData }
   | { kind: "connect"; connected: boolean; id: string | null; name: string | null }
   | { kind: "record"; recording: boolean }
@@ -100,10 +103,15 @@ export function parseFrame(raw: string): BvcFrame {
         recording: data.recording,
         voiceMode: toVoiceMode(data.voice_mode),
         pttActive: data.ptt_active === true,
+        jukeboxMuted: data.jukebox_muted === true,
         connection: toTarget(data.connection),
       },
     };
   }
+
+  // Last of the three shapes carrying `muted`: a mute reply carries `device` beside it and a
+  // state frame carries `deafened` and `recording`, so both have already matched above.
+  if (typeof data.muted === "boolean") return { kind: "jukebox", muted: data.muted };
 
   if (typeof data.connected === "boolean") {
     return {

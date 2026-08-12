@@ -64,16 +64,46 @@ describe("parseFrame", () => {
     expect(frame).toEqual({ kind: "mute", device: "input", muted: true });
   });
 
+  test("reads a jukebox response and does not mistake it for mute or state", () => {
+    expect(parseFrame(wrap({ muted: true }))).toEqual({ kind: "jukebox", muted: true });
+  });
+
+  test("reads a jukebox response reporting music playing", () => {
+    expect(parseFrame(wrap({ muted: false }))).toEqual({ kind: "jukebox", muted: false });
+  });
+
+  test("still reads a mute response, which also carries muted", () => {
+    expect(parseFrame(wrap({ device: "output", muted: true }))).toEqual({
+      kind: "mute", device: "output", muted: true,
+    });
+  });
+
+  test("reads jukebox_muted from a state frame", () => {
+    const frame = parseFrame(wrap({
+      muted: false, deafened: false, recording: false,
+      voice_mode: "openMic", ptt_active: false, jukebox_muted: true, connection: null,
+    }));
+    expect(frame.kind === "state" && frame.state.jukeboxMuted).toBe(true);
+  });
+
+  test("a state frame with no jukebox_muted reads as music playing", () => {
+    const frame = parseFrame(wrap({
+      muted: false, deafened: false, recording: false,
+      voice_mode: "openMic", ptt_active: false, connection: null,
+    }));
+    expect(frame.kind === "state" && frame.state.jukeboxMuted).toBe(false);
+  });
+
   test("reads a full state frame with no active connection", () => {
     const frame = parseFrame(wrap({
       muted: false, deafened: true, recording: false,
-      voice_mode: "openMic", ptt_active: false, connection: null,
+      voice_mode: "openMic", ptt_active: false, jukebox_muted: false, connection: null,
     }));
     expect(frame).toEqual({
       kind: "state",
       state: {
         muted: false, deafened: true, recording: false,
-        voiceMode: "openMic", pttActive: false, connection: null,
+        voiceMode: "openMic", pttActive: false, jukeboxMuted: false, connection: null,
       },
     });
   });
@@ -81,14 +111,14 @@ describe("parseFrame", () => {
   test("reads a full state frame carrying an active connection", () => {
     const frame = parseFrame(wrap({
       muted: true, deafened: false, recording: false,
-      voice_mode: "pushToTalk", ptt_active: true,
+      voice_mode: "pushToTalk", ptt_active: true, jukebox_muted: true,
       connection: { id: "realm:12345", name: "My Realm", kind: "realm" },
     }));
     expect(frame).toEqual({
       kind: "state",
       state: {
         muted: true, deafened: false, recording: false,
-        voiceMode: "pushToTalk", pttActive: true,
+        voiceMode: "pushToTalk", pttActive: true, jukeboxMuted: true,
         connection: { id: "realm:12345", name: "My Realm", kind: "realm" },
       },
     });

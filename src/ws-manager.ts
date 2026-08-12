@@ -1,5 +1,11 @@
 import WebSocket from "ws";
 import streamDeck from "@elgato/streamdeck";
+import {
+  DEFAULT_HOST,
+  DEFAULT_PORT,
+  readConnection,
+  sameConnection,
+} from "./connection-settings";
 import { parseFrame, type BvcFrame, type StateFrameData } from "./frame";
 import { PendingRequests } from "./pending-requests";
 import { buildUserAgent } from "./user-agent";
@@ -14,8 +20,6 @@ import type {
 
 export type StateListener = (event: BvcStateEvent) => void;
 
-const DEFAULT_HOST = "127.0.0.1";
-const DEFAULT_PORT = 9595;
 const RECONNECT_BASE_MS = 1000;
 const RECONNECT_MAX_MS = 30000;
 const PING_INTERVAL_MS = 15000;
@@ -31,13 +35,6 @@ const DISCONNECTED_MESSAGE = "Disconnected from Bedrock Voice Chat";
  * Connect key then reports no target configured until someone opens a Property Inspector.
  */
 const TARGETS_RETRY_MS = [5000, 15000, 45000];
-
-/** Parse a port string, returning the default if empty/invalid. */
-function parsePort(value: string | number | undefined): number {
-  if (value === undefined || value === "") return DEFAULT_PORT;
-  const n = typeof value === "number" ? value : parseInt(value, 10);
-  return Number.isFinite(n) && n > 0 && n <= 65535 ? n : DEFAULT_PORT;
-}
 
 /**
  * Read the plugin version for the User-Agent. Registration info is only populated after
@@ -75,6 +72,7 @@ class WsManager {
     recording: null,
     voiceMode: null,
     pttActive: null,
+    jukeboxMuted: null,
     connection: null,
     targets: [],
   };
@@ -106,14 +104,16 @@ class WsManager {
 
   /** Apply settings, return true if connection-relevant values changed. */
   private applySettings(s: GlobalSettings): boolean {
-    const newHost = s.host?.trim() || DEFAULT_HOST;
-    const newPort = parsePort(s.port);
-    const newKey = s.authenticationKey?.trim() ?? "";
+    const next = readConnection(s);
+    const changed = !sameConnection(next, {
+      host: this.host,
+      port: this.port,
+      key: this.authenticationKey,
+    });
 
-    const changed = newHost !== this.host || newPort !== this.port || newKey !== this.authenticationKey;
-    this.host = newHost;
-    this.port = newPort;
-    this.authenticationKey = newKey;
+    this.host = next.host;
+    this.port = next.port;
+    this.authenticationKey = next.key;
     return changed;
   }
 
@@ -343,6 +343,10 @@ class WsManager {
         this.setPttActive(frame.active);
         return;
 
+      case "jukebox":
+        this.setJukeboxMuted(frame.muted);
+        return;
+
       case "targets":
         this.setTargets(frame.targets);
         return;
@@ -368,6 +372,7 @@ class WsManager {
     this.setRecording(state.recording);
     this.setVoiceMode(state.voiceMode);
     this.setPttActive(state.pttActive);
+    this.setJukeboxMuted(state.jukeboxMuted);
     this.setActiveConnection(state.connection);
   }
 
@@ -378,6 +383,7 @@ class WsManager {
     this.setRecording(null);
     this.setVoiceMode(null);
     this.setPttActive(null);
+    this.setJukeboxMuted(null);
     this.setActiveConnection(null);
   }
 
@@ -409,6 +415,12 @@ class WsManager {
     if (this.state.pttActive === active) return;
     this.state.pttActive = active;
     this.emit({ type: "pttActiveChanged", active });
+  }
+
+  private setJukeboxMuted(muted: boolean | null): void {
+    if (this.state.jukeboxMuted === muted) return;
+    this.state.jukeboxMuted = muted;
+    this.emit({ type: "jukeboxMuteChanged", muted });
   }
 
   private setActiveConnection(connection: ActiveConnection | null): void {

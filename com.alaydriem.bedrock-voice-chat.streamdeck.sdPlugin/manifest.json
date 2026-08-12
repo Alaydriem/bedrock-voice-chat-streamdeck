@@ -49,6 +49,21 @@
 			]
 		},
 		{
+			"Name": "Jukebox",
+			"UUID": "com.alaydriem.bedrock-voice-chat.streamdeck.jukebox",
+			"Icon": "imgs/actions/jukebox/icon",
+			"Tooltip": "Toggle jukebox music in Bedrock Voice Chat",
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/jukebox/key",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
 			"Name": "Connect",
 			"UUID": "com.alaydriem.bedrock-voice-chat.streamdeck.connect",
 			"Icon": "imgs/actions/connect/icon",
@@ -61,6 +76,22 @@
 				{
 					"Image": "imgs/actions/connect/key",
 					"ShowTitle": true
+				}
+			]
+		},
+		{
+			"Name": "Stats",
+			"UUID": "com.alaydriem.bedrock-voice-chat.streamdeck.stat",
+			"Icon": "imgs/actions/stat/icon",
+			"Tooltip": "Show up to four live Bedrock Voice Chat statistics",
+			"PropertyInspectorPath": "ui/stat.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/stat/key",
+					"ShowTitle": false
 				}
 			]
 		}
