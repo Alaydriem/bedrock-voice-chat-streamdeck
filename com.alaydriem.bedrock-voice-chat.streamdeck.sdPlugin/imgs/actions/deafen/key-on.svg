@@ -1,7 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 144 144">
-  <g transform="translate(31,31) scale(3.4583333333333335)"
-     stroke="#FFFFFF" stroke-width="2"
+  <rect width="144" height="144" fill="#19102f"/>
+  <g transform="translate(38,38) scale(2.875)"
+     stroke="#d6cbea" stroke-width="1.9"
      stroke-linecap="round" stroke-linejoin="round" fill="none">
-    <path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"/><path d="M16 9a5 5 0 0 1 0 6"/><path d="M19.364 18.364a9 9 0 0 0 0-12.728"/>
+    <path d="M4 15.5v-3.5a8 8 0 0 1 16 0v3.5"/><rect x="2.5" y="14" width="4.6" height="7.2" rx="2.3"/><rect x="16.9" y="14" width="4.6" height="7.2" rx="2.3"/>
   </g>
 </svg>

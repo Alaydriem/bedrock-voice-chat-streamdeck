@@ -2,7 +2,8 @@
     "scripts": {
         "build": "rollup -c",
         "watch": "rollup -c -w --watch.onEnd=\"streamdeck restart com.alaydriem.bedrock-voice-chat.streamdeck\"",
-        "package": "streamdeck pack com.alaydriem.bedrock-voice-chat.streamdeck.sdPlugin"
+        "package": "streamdeck pack com.alaydriem.bedrock-voice-chat.streamdeck.sdPlugin",
+        "test": "vitest run"
     },
     "type": "module",
     "devDependencies": {
@@ -23,11 +24,12 @@
         "rollup": "^4.0.2",
         "semantic-release": "^24.2.9",
         "tslib": "^2.6.2",
-        "typescript": "^5.2.2"
+        "typescript": "^5.2.2",
+        "vitest": "^4.1.10"
     },
     "dependencies": {
         "@elgato/streamdeck": "^2.0.0",
         "ws": "^8.19.0"
     },
-    "version": "1.0.1"
+    "version": "1.1.0"
 }

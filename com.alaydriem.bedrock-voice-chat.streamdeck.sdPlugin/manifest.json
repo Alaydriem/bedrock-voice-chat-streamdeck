@@ -4,10 +4,10 @@
 	"Author": "Alaydriem",
 	"Actions": [
 		{
-			"Name": "Mute",
+			"Name": "Microphone",
 			"UUID": "com.alaydriem.bedrock-voice-chat.streamdeck.mute",
 			"Icon": "imgs/actions/mute/icon",
-			"Tooltip": "Toggle microphone mute in Bedrock Voice Chat",
+			"Tooltip": "Toggle mute, or hold to talk when Bedrock Voice Chat is in push-to-talk",
 			"Controllers": [
 				"Keypad"
 			],
@@ -44,6 +44,53 @@
 			"States": [
 				{
 					"Image": "imgs/actions/record/key",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"Name": "Jukebox",
+			"UUID": "com.alaydriem.bedrock-voice-chat.streamdeck.jukebox",
+			"Icon": "imgs/actions/jukebox/icon",
+			"Tooltip": "Toggle jukebox music in Bedrock Voice Chat",
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/jukebox/key",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"Name": "Connect",
+			"UUID": "com.alaydriem.bedrock-voice-chat.streamdeck.connect",
+			"Icon": "imgs/actions/connect/icon",
+			"Tooltip": "Connect to a Realm or proxy in Bedrock Voice Chat",
+			"PropertyInspectorPath": "ui/connect.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/connect/key",
+					"ShowTitle": true
+				}
+			]
+		},
+		{
+			"Name": "Stats",
+			"UUID": "com.alaydriem.bedrock-voice-chat.streamdeck.stat",
+			"Icon": "imgs/actions/stat/icon",
+			"Tooltip": "Show up to four live Bedrock Voice Chat statistics",
+			"PropertyInspectorPath": "ui/stat.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/stat/key",
 					"ShowTitle": false
 				}
 			]
